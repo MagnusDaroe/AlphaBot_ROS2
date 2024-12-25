@@ -22,6 +22,9 @@ class AlphaBotMouseRemoteNode(Node):
 
         self.get_logger().info("AlphaBot mouse remote control initialized.")
 
+        # Flag to track when the stop command has been sent
+        self.last_command_was_stop = False
+
     def run(self):
         """Main loop for the Pygame interface."""
         while self.running:
@@ -41,6 +44,14 @@ class AlphaBotMouseRemoteNode(Node):
             mouse_x, mouse_y = pygame.mouse.get_pos()
             twist = self.calculate_twist(mouse_x, mouse_y)
             self.publisher.publish(twist)
+            self.last_command_was_stop = False
+        else:
+            # Publish stop command if it wasn't the last command
+            if not self.last_command_was_stop:
+                twist = Twist()  # Default values are zero
+                self.publisher.publish(twist)
+                self.get_logger().info("Published stop command.")
+                self.last_command_was_stop = True
 
     def calculate_twist(self, mouse_x, mouse_y):
         """Calculate Twist message from mouse position."""

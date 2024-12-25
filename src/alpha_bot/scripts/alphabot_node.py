@@ -57,22 +57,27 @@ class AlphaBotNode(Node):
 
     def motor_cmd_callback(self, msg):
         """Handle motor commands."""
-        # Extract linear and angular velocities from Twist message
+        # Extract linear and angular velocities from the Twist message
         linear_x = msg.linear.x
         angular_z = msg.angular.z
 
         # Normalize angular_z to [-1, 1] range
         angular_z = max(-1.0, min(1.0, angular_z))
 
-        # Calculate motor speeds using a trigonometric model
-        left_speed = linear_x * math.cos(angular_z * (math.pi / 4))  # Angular influence on left motor
-        right_speed = linear_x * math.sin(angular_z * (math.pi / 4)) # Angular influence on right motor
+        # Calculate motor speeds based on linear and angular velocities
+        left_speed = linear_x - angular_z  # Adjust left speed with angular component
+        right_speed = linear_x + angular_z  # Adjust right speed with angular component
 
-        # Scale speeds to an integer range suitable for your motors
-        left_speed = int(left_speed * 100)  # Assuming 100 is the max PWM duty cycle
-        right_speed = int(right_speed * 100)
+        # Ensure that the calculated speeds are within the range [-1.0, 1.0]
+        max_magnitude = max(abs(left_speed), abs(right_speed), 1.0)
+        left_speed /= max_magnitude
+        right_speed /= max_magnitude
 
-        # Send speeds to the motors
+        # Scale speeds to an integer range suitable for your motors (assuming 100 is max PWM)
+        left_speed = int(left_speed * 100)  # Scale to PWM range
+        right_speed = int(right_speed * 100)  # Scale to PWM range
+
+        # Send the calculated speeds to the motors
         self.setSpeed(left_speed, right_speed)
 
     def publish_sensor_states(self):
@@ -123,7 +128,7 @@ class AlphaBotNode(Node):
 
     def destroy_node(self):
         """Clean up GPIO on shutdown."""
-        self.stop()
+        self.setSpeed(0, 0)
         GPIO.cleanup()
         super().destroy_node()
 

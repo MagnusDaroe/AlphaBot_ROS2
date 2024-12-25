@@ -98,8 +98,8 @@ class AlphaBotNode(Node):
             right_speed (int): Speed for the right motor (-100 to 100).
         """
         # Ensure speeds are within the range [-100, 100], and reverse the direction left motor to match the same direction as the right motor
-        left_speed = max(min(-left_speed, 100), -100)
-        right_speed = max(min(right_speed, 100), -100)
+        left_speed = max(min(left_speed, 100), -100)
+        right_speed = max(min(-right_speed, 100), -100)
 
         # Initialize motor states
         IN1, IN2, IN3, IN4 = False, False, False, False

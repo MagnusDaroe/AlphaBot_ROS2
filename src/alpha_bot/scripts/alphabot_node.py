@@ -5,6 +5,7 @@ from rclpy.node import Node
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Int8
 import RPi.GPIO as GPIO
+import math
 
 class AlphaBotNode(Node):
     def __init__(self):
@@ -13,7 +14,7 @@ class AlphaBotNode(Node):
         # Initialize GPIO pins for motors
         self.IN1 = 12
         self.IN2 = 13
-        self.IN3 = 20
+        self.IN3 = 20  
         self.IN4 = 21
         self.ENA = 6
         self.ENB = 26
@@ -56,20 +57,23 @@ class AlphaBotNode(Node):
 
     def motor_cmd_callback(self, msg):
         """Handle motor commands."""
+        # Extract linear and angular velocities from Twist message
         linear_x = msg.linear.x
         angular_z = msg.angular.z
 
-        # Determine movement based on linear and angular velocity
-        if linear_x > 0:
-            self.forward()
-        elif linear_x < 0:
-            self.backward()
-        elif angular_z > 0:
-            self.left()
-        elif angular_z < 0:
-            self.right()
-        else:
-            self.stop()
+        # Normalize angular_z to [-1, 1] range
+        angular_z = max(-1.0, min(1.0, angular_z))
+
+        # Calculate motor speeds using a trigonometric model
+        left_speed = linear_x * math.cos(angular_z * (math.pi / 4))  # Angular influence on left motor
+        right_speed = linear_x * math.sin(angular_z * (math.pi / 4)) # Angular influence on right motor
+
+        # Scale speeds to an integer range suitable for your motors
+        left_speed = int(left_speed * 100)  # Assuming 100 is the max PWM duty cycle
+        right_speed = int(right_speed * 100)
+
+        # Send speeds to the motors
+        self.setSpeed(left_speed, right_speed)
 
     def publish_sensor_states(self):
         """Read sensor states and publish them."""
@@ -81,45 +85,41 @@ class AlphaBotNode(Node):
         msg = Int8(data=sensor_state)
         self.ir_publisher.publish(msg)
 
-    def forward(self):
-        """Move the robot forward."""
-        GPIO.output(self.IN1, GPIO.HIGH)
-        GPIO.output(self.IN2, GPIO.LOW)
-        GPIO.output(self.IN3, GPIO.LOW)
-        GPIO.output(self.IN4, GPIO.HIGH)
-        self.get_logger().info('Moving forward.')
+    def setSpeed(self, left_speed, right_speed):
+        """
+        Set the speed and direction of the motors using logical variables for GPIO control.
+        Args:
+            left_speed (int): Speed for the left motor (-100 to 100).
+            right_speed (int): Speed for the right motor (-100 to 100).
+        """
+        # Ensure speeds are within the range [-100, 100]
+        left_speed = max(min(left_speed, 100), -100)
+        right_speed = max(min(right_speed, 100), -100)
 
-    def backward(self):
-        """Move the robot backward."""
-        GPIO.output(self.IN1, GPIO.LOW)
-        GPIO.output(self.IN2, GPIO.HIGH)
-        GPIO.output(self.IN3, GPIO.HIGH)
-        GPIO.output(self.IN4, GPIO.LOW)
-        self.get_logger().info('Moving backward.')
+        # Initialize motor states
+        IN1, IN2, IN3, IN4 = False, False, False, False
 
-    def left(self):
-        """Turn the robot left."""
-        GPIO.output(self.IN1, GPIO.LOW)
-        GPIO.output(self.IN2, GPIO.LOW)
-        GPIO.output(self.IN3, GPIO.LOW)
-        GPIO.output(self.IN4, GPIO.HIGH)
-        self.get_logger().info('Turning left.')
+        # Determine the direction and state for the left motor
+        if left_speed > 0:
+            IN1, IN2 = True, False  # Forward
+        elif left_speed < 0:
+            IN1, IN2 = False, True  # Backward
+ 
+        # Determine the direction and state for the right motor
+        if right_speed > 0:
+            IN3, IN4 = True, False  # Forward
+        elif right_speed < 0:
+            IN3, IN4 = False, True  # Backward
 
-    def right(self):
-        """Turn the robot right."""
-        GPIO.output(self.IN1, GPIO.HIGH)
-        GPIO.output(self.IN2, GPIO.LOW)
-        GPIO.output(self.IN3, GPIO.LOW)
-        GPIO.output(self.IN4, GPIO.LOW)
-        self.get_logger().info('Turning right.')
+        # Apply motor states to GPIO
+        GPIO.output(self.IN1, GPIO.HIGH if IN1 else GPIO.LOW)
+        GPIO.output(self.IN2, GPIO.HIGH if IN2 else GPIO.LOW)
+        GPIO.output(self.IN3, GPIO.HIGH if IN3 else GPIO.LOW)
+        GPIO.output(self.IN4, GPIO.HIGH if IN4 else GPIO.LOW)
 
-    def stop(self):
-        """Stop the robot."""
-        GPIO.output(self.IN1, GPIO.LOW)
-        GPIO.output(self.IN2, GPIO.LOW)
-        GPIO.output(self.IN3, GPIO.LOW)
-        GPIO.output(self.IN4, GPIO.LOW)
-        self.get_logger().info('Stopping.')
+        # Set PWM duty cycles (absolute value of speed)
+        self.PWMA.ChangeDutyCycle(abs(left_speed))
+        self.PWMB.ChangeDutyCycle(abs(right_speed))
 
     def destroy_node(self):
         """Clean up GPIO on shutdown."""

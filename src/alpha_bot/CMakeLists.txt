@@ -12,6 +12,7 @@ find_package(geometry_msgs REQUIRED)
 # Install Python executables (your ROS 2 Python scripts)
 install(PROGRAMS
   scripts/alphabot_node.py
+  scripts/alphabot_remote_node.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

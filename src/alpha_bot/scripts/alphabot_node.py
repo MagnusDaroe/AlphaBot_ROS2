@@ -2,75 +2,139 @@
 
 import rclpy
 from rclpy.node import Node
-from sensor_msgs.msg import CompressedImage
-from cv_bridge import CvBridge
-import cv2
+from geometry_msgs.msg import Twist
+from std_msgs.msg import Int8
+import RPi.GPIO as GPIO
+import math
 
-class AlphabotCam(Node):
-    def __init__(self, topic_name="/alphabot/out/cam", frame_rate=30):
+class AlphaBotNode(Node):
+    def __init__(self):
+        super().__init__('alphabot_node')
+
+        # Initialize GPIO pins for motors
+        self.IN1 = 12
+        self.IN2 = 13
+        self.IN3 = 20  
+        self.IN4 = 21
+        self.ENA = 6
+        self.ENB = 26
+
+        # GPIO setup
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setwarnings(False)
+        GPIO.setup(self.IN1, GPIO.OUT)
+        GPIO.setup(self.IN2, GPIO.OUT)
+        GPIO.setup(self.IN3, GPIO.OUT)
+        GPIO.setup(self.IN4, GPIO.OUT)
+        GPIO.setup(self.ENA, GPIO.OUT)
+        GPIO.setup(self.ENB, GPIO.OUT)
+
+        # Initialize PWM for motors
+        self.PWMA = GPIO.PWM(self.ENA, 500)
+        self.PWMB = GPIO.PWM(self.ENB, 500)
+        self.PWMA.start(50)  # Default duty cycle: 50%
+        self.PWMB.start(50)
+
+        # Initialize GPIO pins for sensors
+        self.DR = 16  # Right sensor
+        self.DL = 19  # Left sensor
+        GPIO.setup(self.DR, GPIO.IN, GPIO.PUD_UP)
+        GPIO.setup(self.DL, GPIO.IN, GPIO.PUD_UP)
+
+        # Subscribe to motor command topic
+        self.motor_subscriber = self.create_subscription(
+            Twist,
+            '/alphabot/in/motor_cmd',
+            self.motor_cmd_callback,
+            10
+        )
+
+        # Publish sensor states
+        self.ir_publisher = self.create_publisher(Int8, '/alphabot/out/ir', 10)
+        self.timer = self.create_timer(0.1, self.publish_sensor_states)
+
+        self.get_logger().info('AlphaBot node initialized.')
+
+    def motor_cmd_callback(self, msg):
+        """Handle motor commands."""
+        # Extract linear and angular velocities from the Twist message
+        linear_x = msg.linear.x
+        angular_z = msg.angular.z
+
+        # Normalize angular_z to [-1, 1] range
+        angular_z = max(-1.0, min(1.0, angular_z))
+
+        # Calculate motor speeds based on linear and angular velocities
+        left_speed = linear_x - angular_z  
+        right_speed = linear_x + angular_z  
+
+        # Ensure that the calculated speeds are within the range [-1.0, 1.0]
+        max_magnitude = max(abs(left_speed), abs(right_speed), 1.0)
+        left_speed /= max_magnitude
+        right_speed /= max_magnitude
+
+        # Scale speeds to an integer range suitable for your motors (assuming 100 is max PWM)
+        left_speed = int(left_speed * 100)  # Scale to PWM range
+        right_speed = int(right_speed * 100)  # Scale to PWM range
+
+        # Send the calculated speeds to the motors
+        self.setSpeed(left_speed, right_speed)
+
+    def publish_sensor_states(self):
+        """Read sensor states and publish them."""
+        dr_status = GPIO.input(self.DR)
+        dl_status = GPIO.input(self.DL)
+
+        # Publish as a single Int8 value (LSB = DL, MSB = DR)
+        sensor_state = (dr_status << 1) | dl_status
+        msg = Int8(data=sensor_state)
+        self.ir_publisher.publish(msg)
+
+    def setSpeed(self, left_speed, right_speed):
         """
-        Initialize the node, create a publisher for the compressed video stream, and set up the Pi camera.
-
+        Set the speed and direction of the motors using logical variables for GPIO control.
         Args:
-            topic_name (str): The name of the topic to publish the compressed video stream.
-            frame_rate (int): The frame rate for the video stream.
+            left_speed (int): Speed for the left motor (-100 to 100).
+            right_speed (int): Speed for the right motor (-100 to 100).
         """
-        super().__init__("alphabot_cam")
-        self.publisher = self.create_publisher(CompressedImage, topic_name, 10)
-        self.bridge = CvBridge()
-        self.timer = self.create_timer(1.0 / frame_rate, self.publish_frame)
+        # Ensure speeds are within the range [-100, 100], and reverse the direction left motor to match the same direction as the right motor
+        left_speed = max(min(left_speed, 100), -100)
+        right_speed = max(min(-right_speed, 100), -100)
 
-        # Initialize the camera
-        self.cap = cv2.VideoCapture(0)  # Use the default camera (Pi camera is usually 0)
-        if not self.cap.isOpened():
-            self.get_logger().error("Failed to open camera.")
-            rclpy.shutdown()
+        # Initialize motor states
+        IN1, IN2, IN3, IN4 = False, False, False, False
 
-        # Set camera parameters
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-        self.cap.set(cv2.CAP_PROP_FPS, frame_rate)
+        # Determine the direction and state for the left motor
+        if left_speed > 0:
+            IN1, IN2 = True, False  # Forward
+        elif left_speed < 0:
+            IN1, IN2 = False, True  # Backward
+ 
+        # Determine the direction and state for the right motor
+        if right_speed > 0:
+            IN3, IN4 = True, False  # Forward
+        elif right_speed < 0:
+            IN3, IN4 = False, True  # Backward
 
-        self.get_logger().info(f"Pi Camera streamer initialized on topic '{topic_name}'.")
+        # Apply motor states to GPIO
+        GPIO.output(self.IN1, GPIO.HIGH if IN1 else GPIO.LOW)
+        GPIO.output(self.IN2, GPIO.HIGH if IN2 else GPIO.LOW)
+        GPIO.output(self.IN3, GPIO.HIGH if IN3 else GPIO.LOW)
+        GPIO.output(self.IN4, GPIO.HIGH if IN4 else GPIO.LOW)
 
-    def publish_frame(self):
-        """
-        Capture a frame from the Pi camera, compress it to JPEG format, convert it to a ROS CompressedImage message, and publish it.
-        """
-        ret, frame = self.cap.read()
-        if not ret:
-            self.get_logger().warning("Failed to capture frame from camera.")
-            return
-
-        try:
-            # Compress the frame using JPEG encoding (you can change this to PNG if you prefer)
-            ret, jpeg_frame = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 90])
-            if not ret:
-                self.get_logger().warning("Failed to encode image as JPEG.")
-                return
-
-            # Create the CompressedImage message
-            compressed_image_msg = CompressedImage()
-            compressed_image_msg.header.stamp = self.get_clock().now().to_msg()
-            compressed_image_msg.format = "jpeg"  # You can change this to "png" if using PNG compression
-            compressed_image_msg.data = jpeg_frame.tobytes()  # The image data in bytes
-
-            # Publish the compressed image message
-            self.publisher.publish(compressed_image_msg)
-        except Exception as e:
-            self.get_logger().error(f"Error compressing frame: {e}")
+        # Set PWM duty cycles (absolute value of speed)
+        self.PWMA.ChangeDutyCycle(abs(left_speed))
+        self.PWMB.ChangeDutyCycle(abs(right_speed))
 
     def destroy_node(self):
-        """
-        Release the camera resource and clean up when the node is destroyed.
-        """
-        if self.cap.isOpened():
-            self.cap.release()
+        """Clean up GPIO on shutdown."""
+        self.setSpeed(0, 0)
+        GPIO.cleanup()
         super().destroy_node()
 
 def main(args=None):
     rclpy.init(args=args)
-    node = AlphabotCam()
+    node = AlphaBotNode()
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
@@ -79,5 +143,5 @@ def main(args=None):
         node.destroy_node()
         rclpy.shutdown()
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

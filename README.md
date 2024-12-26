@@ -20,3 +20,17 @@ logout
 sudo apt update
 sudo apt install ros-humble-cv-bridge
 pip3 install opencv-python-headless
+
+
+
+sudo apt install libraspberrypi-bin v4l-utils ros-humble-v4l2-camera
+sudo apt install ros-humble-image-transport-plugins
+sudo usermod -aG video dar
+
+
+sudo nano /etc/udev/rules.d/99-camera.rules
+KERNEL=="video[0-9]*", GROUP="video", MODE="0660"
+sudo groupadd video
+sudo usermod -aG video username
+sudo udevadm control --reload-rules
+sudo udevadm trigger

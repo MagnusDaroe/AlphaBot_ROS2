@@ -13,3 +13,10 @@ sudo chmod g+rw /dev/gpiomem
 
 ## Log out and log back in to apply the group changes
 logout
+
+
+
+# Camera
+sudo apt update
+sudo apt install ros-humble-cv-bridge
+pip3 install opencv-python-headless

@@ -13,6 +13,7 @@ find_package(geometry_msgs REQUIRED)
 install(PROGRAMS
   scripts/alphabot_node.py
   scripts/alphabot_remote_node.py
+  scripts/alphabot_cam_node.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

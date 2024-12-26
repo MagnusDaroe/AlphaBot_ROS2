@@ -65,8 +65,8 @@ class AlphaBotNode(Node):
         angular_z = max(-1.0, min(1.0, angular_z))
 
         # Calculate motor speeds based on linear and angular velocities
-        left_speed = linear_x - angular_z  # Adjust left speed with angular component
-        right_speed = linear_x + angular_z  # Adjust right speed with angular component
+        left_speed = linear_x - angular_z  
+        right_speed = linear_x + angular_z 
 
         # Ensure that the calculated speeds are within the range [-1.0, 1.0]
         max_magnitude = max(abs(left_speed), abs(right_speed), 1.0)

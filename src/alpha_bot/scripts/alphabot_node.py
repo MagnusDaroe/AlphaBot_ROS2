@@ -160,10 +160,10 @@ class AlphaBotNode(Node):
         self.PWMA.ChangeDutyCycle(abs(left_speed))
         self.PWMB.ChangeDutyCycle(abs(right_speed))
     
-    def calculate_angle(self, linear_x, angular_y):
+    def calculate_angle(self, angular_x, angular_y):
         """Calculate the angle of the servos. This is based on a normalized linear_x and angular_y."""
-        j1_angle = int(self.last_j1_angle + linear_x)
-        j2_angle = int(self.last_j2_angle + angular_y)
+        j1_angle = self.last_j1_angle + angular_x
+        j2_angle = self.last_j2_angle + angular_y
         
         #Make sure it is within the range of 0-180
         if j1_angle >= 180:

@@ -42,10 +42,10 @@ class AlphaBotNode(Node):
         self.PWMB.start(50)
         
         # Initialize PWM for servos
-        self.J1 = GPIO.PWM(self.S1, 500)
-        self.J2 = GPIO.PWM(self.S2, 500)
-        self.J1.start(50)
-        self.J1.start(50)
+        self.J1 = GPIO.PWM(self.S1, 50)
+        self.J2 = GPIO.PWM(self.S2, 50)
+        self.J1.start(3)
+        self.J1.start(3)
 
         # Initialize GPIO pins for sensors
         self.DR = 16  # Right sensor

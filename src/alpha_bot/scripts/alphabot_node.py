@@ -42,8 +42,8 @@ class AlphaBotNode(Node):
         self.PWMB.start(50)
         
         # Initialize PWM for servos
-        self.J1 = GPIO.PWM(self.S1, 51)
-        self.J2 = GPIO.PWM(self.S2, 51)
+        self.J1 = GPIO.PWM(self.S1, 50)
+        self.J2 = GPIO.PWM(self.S2, 50)
         self.J1.start(7.5) # Default angle: 90°
         self.J2.start(7.5) # Default angle: 90°
 
@@ -72,10 +72,15 @@ class AlphaBotNode(Node):
         # Extract linear and angular velocities from the Twist message
         linear_x = msg.linear.x
         angular_z = msg.angular.z
+        angular_x = msg.angular.x
+        angular_y = msg.angular.y
+        
+        # Convert normalized linear and angular velocities to angles for the servos
+        j1_angle, j2_angle = self.calculate_angle(linear_x, angular_y)
         
         # Set the angle of the servos
-        self.setAngle(self.J1, 30)
-        self.setAngle(self.J2, 50)
+        self.setAngle(self.J1, j1_angle)
+        self.setAngle(self.J2, j2_angle)
 
         # Calculate motor speeds based on linear and angular velocities
         left_speed, right_speed = self.calculate_speeds(linear_x, angular_z)   
@@ -147,7 +152,14 @@ class AlphaBotNode(Node):
         # Set PWM duty cycles (absolute value of speed)
         self.PWMA.ChangeDutyCycle(abs(left_speed))
         self.PWMB.ChangeDutyCycle(abs(right_speed))
-        
+    
+    def calculate_angle(self, linear_x, angular_y):
+        """Calculate the angle of the servos. This is based on a normalized linear_x and angular_y."""
+        j1_angle = int(90 + 90 * linear_x)
+        j2_angle = int(90 + 90 * angular_y)
+       
+        return j1_angle, j2_angle
+    
     def setAngle(self, servo, angle):
         """Set the angle of the servo."""
         duty = 2.5 + (angle / 180.0) * 10  # Map 0-180° to 2.5%-12.5%

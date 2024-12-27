@@ -18,6 +18,10 @@ class AlphaBotNode(Node):
         self.IN4 = 21
         self.ENA = 6
         self.ENB = 26
+        
+        # Define servo pins
+        self.S1 = 27
+        self.S2 = 22
 
         # GPIO setup
         GPIO.setmode(GPIO.BCM)
@@ -28,12 +32,20 @@ class AlphaBotNode(Node):
         GPIO.setup(self.IN4, GPIO.OUT)
         GPIO.setup(self.ENA, GPIO.OUT)
         GPIO.setup(self.ENB, GPIO.OUT)
+        GPIO.setup(self.J1, GPIO.OUT)
+        GPIO.setup(self.J2, GPIO.OUT)
 
         # Initialize PWM for motors
         self.PWMA = GPIO.PWM(self.ENA, 500)
         self.PWMB = GPIO.PWM(self.ENB, 500)
         self.PWMA.start(50)  # Default duty cycle: 50%
         self.PWMB.start(50)
+        
+        # Initialize PWM for servos
+        self.J1 = GPIO.PWM(self.J1, 500)
+        self.J2 = GPIO.PWM(self.J2, 500)
+        self.J1.start(50)
+        self.J1.start(50)
 
         # Initialize GPIO pins for sensors
         self.DR = 16  # Right sensor
@@ -60,22 +72,12 @@ class AlphaBotNode(Node):
         # Extract linear and angular velocities from the Twist message
         linear_x = msg.linear.x
         angular_z = msg.angular.z
-
-        # Normalize angular_z to [-1, 1] range
-        angular_z = max(-1.0, min(1.0, angular_z))
+        
+        # Set the angle of the servos
+        self.setAngle(50, 50)
 
         # Calculate motor speeds based on linear and angular velocities
-        left_speed = linear_x - angular_z  
-        right_speed = linear_x + angular_z  
-
-        # Ensure that the calculated speeds are within the range [-1.0, 1.0]
-        max_magnitude = max(abs(left_speed), abs(right_speed), 1.0)
-        left_speed /= max_magnitude
-        right_speed /= max_magnitude
-
-        # Scale speeds to an integer range suitable for your motors (assuming 100 is max PWM)
-        left_speed = int(left_speed * 100)  # Scale to PWM range
-        right_speed = int(right_speed * 100)  # Scale to PWM range
+        left_speed, right_speed = self.calculate_speeds(linear_x, angular_z)   
 
         # Send the calculated speeds to the motors
         self.setSpeed(left_speed, right_speed)
@@ -89,6 +91,25 @@ class AlphaBotNode(Node):
         sensor_state = (dr_status << 1) | dl_status
         msg = Int8(data=sensor_state)
         self.ir_publisher.publish(msg)
+        
+    def calculate_speeds(self, linear_x, angular_z):
+        """Calculate motor speeds based on linear and angular velocities."""
+         # Normalize angular_z to [-1, 1] range
+        angular_z = max(-1.0, min(1.0, angular_z))
+        
+        left_speed = linear_x - angular_z
+        right_speed = linear_x + angular_z
+
+        # Ensure that the calculated speeds are within the range [-1.0, 1.0]
+        max_magnitude = max(abs(left_speed), abs(right_speed), 1.0)
+        left_speed /= max_magnitude
+        right_speed /= max_magnitude
+
+        # Scale speeds to an integer range suitable for your motors (assuming 100 is max PWM)
+        left_speed = int(left_speed * 100)
+        right_speed = int(right_speed * 100)
+        
+        return left_speed, right_speed
 
     def setSpeed(self, left_speed, right_speed):
         """
@@ -125,6 +146,17 @@ class AlphaBotNode(Node):
         # Set PWM duty cycles (absolute value of speed)
         self.PWMA.ChangeDutyCycle(abs(left_speed))
         self.PWMB.ChangeDutyCycle(abs(right_speed))
+        
+    def setAngle(self, j1, j2):
+        """Set the angle of the servos."""
+        # Set PWM duty cycles (absolute value of speed)
+        
+        j1 = 100
+        j2 = 100
+        
+        self.PWMA.ChangeDutyCycle(abs(j1))
+        self.PWMB.ChangeDutyCycle(abs(j2))
+        
 
     def destroy_node(self):
         """Clean up GPIO on shutdown."""

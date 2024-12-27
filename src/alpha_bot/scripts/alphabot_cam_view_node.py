@@ -11,7 +11,7 @@ class ImageSubscriber(Node):
         super().__init__('image_subscriber')
         self.subscription = self.create_subscription(
             CompressedImage,
-            '/alphabot/out/ir',  # Topic you specified
+            '/alphabot/out/cam',  # Topic you specified
             self.image_callback,
             10
         )

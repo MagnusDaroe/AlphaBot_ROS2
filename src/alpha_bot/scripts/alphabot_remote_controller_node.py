@@ -49,6 +49,9 @@ class AlphaBotControllerRemoteNode(Node):
         x_axis = self.joystick.get_axis(0)  # Left stick horizontal (right/left) for turning
         y_axis = self.joystick.get_axis(1)  # Left stick vertical (up/down) for forward/backward
         
+        #reverse the x-axis
+        x_axis = -x_axis
+        
         if abs(x_axis) < 0.1:
             x_axis = 0.0
             

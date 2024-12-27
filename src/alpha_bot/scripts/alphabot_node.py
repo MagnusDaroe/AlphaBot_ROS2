@@ -6,14 +6,20 @@ from geometry_msgs.msg import Twist
 from std_msgs.msg import Int8
 import RPi.GPIO as GPIO
 import math
+import time
 
 class AlphaBotNode(Node):
     last_j1_angle = 90
     last_j2_angle = 90
+    last_time_since_j1_update = 0
+    last_time_since_j2_update = 0
+    j1_disabled = False
+    j2_disabled = False
+    start_time = time.time()
     
     def __init__(self):
         super().__init__('alphabot_node')
-
+        
         # Initialize GPIO pins for motors
         self.IN1 = 12
         self.IN2 = 13
@@ -83,13 +89,31 @@ class AlphaBotNode(Node):
         
         # Set the angle of the servos
         if j1_angle != self.last_j1_angle:
+            if (self.j1_disabled == True):
+                #Enable the servo
+                self.j1_disabled = False
+            
             print(f"J1: {j1_angle}")
             self.setAngle(self.J1, j1_angle)
             self.last_j1_angle = j1_angle
+            self.last_time_since_j1_update = time.time()
+            
         if j2_angle != self.last_j2_angle:
-            print(f"J2: {j2_angle}")
+            if (self.j2_disabled == True):
+                #Enable the servo
+                self.j2_disabled = False
+
             self.setAngle(self.J2, j2_angle)
             self.last_j2_angle = j2_angle
+            self.last_time_since_j2_update = time.time()
+
+        if (time.time() - self.last_time_since_j1_update) > 1:
+            self.disable_servo(self.J1)
+            self.j1_disabled = True
+            
+        if (time.time() - self.last_time_since_j2_update) > 1:
+            self.disable_servo(self.J2)
+            self.j2_disabled = True
 
         # Calculate motor speeds based on linear and angular velocities
         left_speed, right_speed = self.calculate_speeds(linear_x, angular_z)   
@@ -183,6 +207,14 @@ class AlphaBotNode(Node):
         """Set the angle of the servo."""
         duty = 2.5 + (angle / 180.0) * 10  # Map 0-180° to 2.5%-12.5%
         servo.ChangeDutyCycle(duty)
+
+    def disable_servo(self, servo):
+        """Disable the servo."""
+        servo.ChangeDutyCycle(0)
+        
+    def enable_servo(self, servo, last_angle):
+        """Enable the servo."""
+        self.setAngle(servo, last_angle)
 
     def destroy_node(self):
         """Clean up GPIO on shutdown."""

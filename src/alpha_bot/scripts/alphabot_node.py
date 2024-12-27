@@ -42,8 +42,8 @@ class AlphaBotNode(Node):
         self.PWMB.start(50)
         
         # Initialize PWM for servos
-        self.J1 = GPIO.PWM(self.J1, 500)
-        self.J2 = GPIO.PWM(self.J2, 500)
+        self.J1 = GPIO.PWM(self.S1, 500)
+        self.J2 = GPIO.PWM(self.S2, 500)
         self.J1.start(50)
         self.J1.start(50)
 

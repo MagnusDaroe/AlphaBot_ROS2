@@ -107,11 +107,11 @@ class AlphaBotNode(Node):
             self.last_j2_angle = j2_angle
             self.last_time_since_j2_update = time.time()
 
-        if (time.time() - self.last_time_since_j1_update) > 1:
+        if (time.time() - self.last_time_since_j1_update) > 0.3:
             self.disable_servo(self.J1)
             self.j1_disabled = True
             
-        if (time.time() - self.last_time_since_j2_update) > 1:
+        if (time.time() - self.last_time_since_j2_update) > 0.3:
             self.disable_servo(self.J2)
             self.j2_disabled = True
 

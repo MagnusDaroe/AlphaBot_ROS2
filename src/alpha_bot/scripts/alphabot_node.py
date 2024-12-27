@@ -76,7 +76,7 @@ class AlphaBotNode(Node):
         angular_y = msg.angular.y
         
         # Convert normalized linear and angular velocities to angles for the servos
-        j1_angle, j2_angle = self.calculate_angle(linear_x, angular_y)
+        j1_angle, j2_angle = self.calculate_angle(angular_x, angular_y)
         
         # Set the angle of the servos
         self.setAngle(self.J1, j1_angle)

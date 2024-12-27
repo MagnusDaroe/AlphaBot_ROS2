@@ -44,34 +44,45 @@ class AlphaBotControllerRemoteNode(Node):
             if event.type == pygame.QUIT:
                 self.running = False
 
-        # Get joystick input for the first joystick (index 0)
-        # Using just the first joystick's X and Y axes
+        # Get joystick input for the left joystick (axes 0 and 1)
         x_axis = self.joystick.get_axis(0)  # Left stick horizontal (right/left) for turning
         y_axis = self.joystick.get_axis(1)  # Left stick vertical (up/down) for forward/backward
-        
-        #reverse the x-axis
+
+        # Reverse the x-axis
         x_axis = -x_axis
-        
+
+        # Deadzone for the left stick
         if abs(x_axis) < 0.1:
             x_axis = 0.0
-            
         if abs(y_axis) < 0.1:
             y_axis = 0.0
-        
-        twist = self.calculate_twist(x_axis, y_axis)
+
+        # Get joystick input for the right joystick (axes 2 and 3)
+        angular_x = -self.joystick.get_axis(4)  # Right stick horizontal (angular.x)
+        angular_y = self.joystick.get_axis(3)  # Right stick vertical (angular.y)
+
+        # Deadzone for the right stick
+        if abs(angular_x) < 0.1:
+            angular_x = 0.0
+        if abs(angular_y) < 0.1:
+            angular_y = 0.0
+
+        twist = self.calculate_twist(x_axis, y_axis, angular_x, angular_y)
         self.publisher.publish(twist)
 
-    def calculate_twist(self, x_axis, y_axis):
+    def calculate_twist(self, x_axis, y_axis, angular_x, angular_y):
         """Calculate Twist message from joystick input."""
         twist = Twist()
 
-        # Y-axis of the joystick controls forward/backward (linear.x)
+        # Left stick controls linear.x and angular.z
         twist.linear.x = -y_axis  # Negative because pushing up gives negative values (forward)
-
-        # X-axis of the joystick controls turning (angular.z)
         twist.angular.z = x_axis  # Positive for right/clockwise, negative for left/counter-clockwise
 
-        self.get_logger().info(f"Publishing: linear.x={twist.linear.x}, angular.z={twist.angular.z}")
+        # Right stick controls angular.x and angular.y
+        twist.angular.y = angular_y  # Horizontal movement of right stick
+        twist.angular.x = angular_x  # Vertical movement of right stick
+
+        self.get_logger().info(f"Publishing: linear.x={twist.linear.x}, angular.z={twist.angular.z}, angular.x={twist.angular.x}, angular.y={twist.angular.y}")
         return twist
 
     def destroy_node(self):

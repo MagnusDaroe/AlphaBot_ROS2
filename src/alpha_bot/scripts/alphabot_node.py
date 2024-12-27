@@ -168,14 +168,14 @@ class AlphaBotNode(Node):
         j2_angle = self.last_j2_angle + angular_y
         
         #Make sure it is within the range of 0-180
-        if j1_angle >= 180:
-            j1_angle = 180
-        if j1_angle <= 0:
-            j1_angle = 0
-        if j2_angle >= 180:
-            j2_angle = 180
-        if j2_angle <= 0:
-            j2_angle = 0
+        if j1_angle >= 160:
+            j1_angle = 160
+        if j1_angle <= 20:
+            j1_angle = 20
+        if j2_angle >= 100:
+            j2_angle = 100
+        if j2_angle <= 40:
+            j2_angle = 40
         
         return j1_angle, j2_angle
     

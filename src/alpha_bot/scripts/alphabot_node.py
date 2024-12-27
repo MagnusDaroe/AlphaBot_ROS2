@@ -8,6 +8,9 @@ import RPi.GPIO as GPIO
 import math
 
 class AlphaBotNode(Node):
+    last_j1_angle = 90
+    last_j2_angle = 90
+    
     def __init__(self):
         super().__init__('alphabot_node')
 
@@ -76,11 +79,15 @@ class AlphaBotNode(Node):
         angular_y = msg.angular.y
         
         # Convert normalized linear and angular velocities to angles for the servos
-        j1_angle, j2_angle = self.calculate_angle(angular_x, angular_y)
+        j1_angle, j2_angle = self.calculate_angle(angular_y, angular_x)
         
         # Set the angle of the servos
-        self.setAngle(self.J1, j1_angle)
-        self.setAngle(self.J2, j2_angle)
+        if j1_angle != self.last_j1_angle:
+            self.setAngle(self.J1, j1_angle)
+            self.last_j1_angle = j1_angle
+        if j2_angle != self.last_j2_angle:
+            self.setAngle(self.J2, j2_angle)
+            self.last_j2_angle = j2_angle
 
         # Calculate motor speeds based on linear and angular velocities
         left_speed, right_speed = self.calculate_speeds(linear_x, angular_z)   

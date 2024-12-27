@@ -42,10 +42,10 @@ class AlphaBotNode(Node):
         self.PWMB.start(50)
         
         # Initialize PWM for servos
-        #self.J1 = GPIO.PWM(self.S1, 50)
-        #self.J2 = GPIO.PWM(self.S2, 50)
-        #self.J1.start(3)
-        #self.J1.start(3)
+        self.J1 = GPIO.PWM(self.S1, 50)
+        self.J2 = GPIO.PWM(self.S2, 50)
+        self.J1.start(7.5) # Default angle: 90°
+        self.J1.start(7.5) # Default angle: 90°
 
         # Initialize GPIO pins for sensors
         self.DR = 16  # Right sensor
@@ -74,7 +74,8 @@ class AlphaBotNode(Node):
         angular_z = msg.angular.z
         
         # Set the angle of the servos
-        #self.setAngle(50, 50)
+        self.setAngle(self.J1, 30)
+        self.setAngle(self.J2, 50)
 
         # Calculate motor speeds based on linear and angular velocities
         left_speed, right_speed = self.calculate_speeds(linear_x, angular_z)   
@@ -147,16 +148,10 @@ class AlphaBotNode(Node):
         self.PWMA.ChangeDutyCycle(abs(left_speed))
         self.PWMB.ChangeDutyCycle(abs(right_speed))
         
-    def setAngle(self, j1, j2):
-        """Set the angle of the servos."""
-        # Set PWM duty cycles (absolute value of speed)
-        
-        j1 = 3
-        j2 = 3
-        
-        self.PWMA.ChangeDutyCycle(abs(j1))
-        self.PWMB.ChangeDutyCycle(abs(j2))
-        
+    def setAngle(self, servo, angle):
+        """Set the angle of the servo."""
+        duty = 2.5 + (angle / 180.0) * 10  # Map 0-180° to 2.5%-12.5%
+        servo.ChangeDutyCycle(duty)
 
     def destroy_node(self):
         """Clean up GPIO on shutdown."""

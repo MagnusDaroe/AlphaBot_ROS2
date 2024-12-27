@@ -32,8 +32,8 @@ class AlphaBotNode(Node):
         GPIO.setup(self.IN4, GPIO.OUT)
         GPIO.setup(self.ENA, GPIO.OUT)
         GPIO.setup(self.ENB, GPIO.OUT)
-        GPIO.setup(self.J1, GPIO.OUT)
-        GPIO.setup(self.J2, GPIO.OUT)
+        GPIO.setup(self.S1, GPIO.OUT)
+        GPIO.setup(self.S2, GPIO.OUT)
 
         # Initialize PWM for motors
         self.PWMA = GPIO.PWM(self.ENA, 500)

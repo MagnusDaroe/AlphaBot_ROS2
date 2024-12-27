@@ -83,11 +83,11 @@ class AlphaBotNode(Node):
         
         # Set the angle of the servos
         if j1_angle != self.last_j1_angle:
-            print(j1_angle)
+            print(f"J2: {j1_angle}")
             self.setAngle(self.J1, j1_angle)
             self.last_j1_angle = j1_angle
         if j2_angle != self.last_j2_angle:
-            print(j2_angle)
+            print(f"J2: {j2_angle}")
             self.setAngle(self.J2, j2_angle)
             self.last_j2_angle = j2_angle
 

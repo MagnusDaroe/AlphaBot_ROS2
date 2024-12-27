@@ -162,9 +162,19 @@ class AlphaBotNode(Node):
     
     def calculate_angle(self, linear_x, angular_y):
         """Calculate the angle of the servos. This is based on a normalized linear_x and angular_y."""
-        j1_angle = int(90 + 90 * linear_x)
-        j2_angle = int(90 + 90 * angular_y)
-       
+        j1_angle = int(self.last_j1_angle + linear_x)
+        j2_angle = int(self.last_j2_angle + angular_y)
+        
+        #Make sure it is within the range of 0-180
+        if j1_angle >= 180:
+            j1_angle = 180
+        if j1_angle <= 0:
+            j1_angle = 0
+        if j2_angle >= 180:
+            j2_angle = 180
+        if j2_angle <= 0:
+            j2_angle = 0
+        
         return j1_angle, j2_angle
     
     def setAngle(self, servo, angle):

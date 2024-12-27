@@ -45,7 +45,7 @@ class AlphaBotNode(Node):
         self.J1 = GPIO.PWM(self.S1, 50)
         self.J2 = GPIO.PWM(self.S2, 50)
         self.J1.start(7.5) # Default angle: 90°
-        self.J1.start(7.5) # Default angle: 90°
+        self.J2.start(7.5) # Default angle: 90°
 
         # Initialize GPIO pins for sensors
         self.DR = 16  # Right sensor

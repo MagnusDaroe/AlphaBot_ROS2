@@ -42,8 +42,8 @@ class AlphaBotNode(Node):
         self.PWMB.start(50)
         
         # Initialize PWM for servos
-        self.J1 = GPIO.PWM(self.S1, 49)
-        self.J2 = GPIO.PWM(self.S2, 49)
+        self.J1 = GPIO.PWM(self.S1, 51)
+        self.J2 = GPIO.PWM(self.S2, 51)
         self.J1.start(7.5) # Default angle: 90°
         self.J2.start(7.5) # Default angle: 90°
 

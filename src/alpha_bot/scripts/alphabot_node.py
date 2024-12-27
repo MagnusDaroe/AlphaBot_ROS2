@@ -151,8 +151,8 @@ class AlphaBotNode(Node):
         """Set the angle of the servos."""
         # Set PWM duty cycles (absolute value of speed)
         
-        j1 = 100
-        j2 = 100
+        j1 = 0
+        j2 = 0
         
         self.PWMA.ChangeDutyCycle(abs(j1))
         self.PWMB.ChangeDutyCycle(abs(j2))

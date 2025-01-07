@@ -46,7 +46,7 @@ class AlphaBotControllerRemoteNode(Node):
 
         # Get joystick input for the left joystick (axes 0 and 1)
         x_axis = self.joystick.get_axis(0)  # Left stick horizontal (right/left) for turning
-        y_axis = self.joystick.get_axis(1)  # Left stick vertical (up/down) for forward/backward
+        y_axis = -self.joystick.get_axis(1)  # Left stick vertical (up/down) for forward/backward
 
         # Reverse the x-axis
         x_axis = -x_axis
@@ -58,13 +58,13 @@ class AlphaBotControllerRemoteNode(Node):
             y_axis = 0.0
 
         # Get joystick input for the right joystick (axes 2 and 3)
-        angular_x = -self.joystick.get_axis(4)  # Right stick horizontal (angular.x)
-        angular_y = self.joystick.get_axis(3)  # Right stick vertical (angular.y)
+        angular_x = self.joystick.get_axis(4)  # Right stick horizontal (angular.x)
+        angular_y = -self.joystick.get_axis(3)  # Right stick vertical (angular.y)
 
         # Deadzone for the right stick
-        if abs(angular_x) < 0.1:
+        if abs(angular_x) < 0.3:
             angular_x = 0.0
-        if abs(angular_y) < 0.1:
+        if abs(angular_y) < 0.3:
             angular_y = 0.0
 
         twist = self.calculate_twist(x_axis, y_axis, angular_x, angular_y)
